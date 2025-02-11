@@ -1,1 +1,60 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retrieve Biometric Authentication Data</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+        pre { text-align: left; background: #f4f4f4; padding: 10px; border-radius: 5px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <h2>WebAuthn Biometric Authentication</h2>
+    <button onclick="authenticateWithBiometrics()">Get Biometric Authentication Data</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function authenticateWithBiometrics() {
+            if (!window.PublicKeyCredential) {
+                document.getElementById("output").innerText = "Biometric authentication is not supported.";
+                return;
+            }
+
+            // The challenge should come from the server for real authentication
+            const challenge = new Uint8Array(32);
+
+            try {
+                const assertion = await navigator.credentials.get({
+                    publicKey: {
+                        challenge: challenge,
+                        userVerification: "required"
+                    }
+                });
+
+                const biometricData = {
+                    credentialId: assertion.id,
+                    rawId: btoa(String.fromCharCode(...new Uint8Array(assertion.rawId))),
+                    response: {
+                        authenticatorData: btoa(String.fromCharCode(...new Uint8Array(assertion.response.authenticatorData))),
+                        clientDataJSON: JSON.parse(new TextDecoder().decode(assertion.response.clientDataJSON)),
+                        signature: btoa(String.fromCharCode(...new Uint8Array(assertion.response.signature))),
+                        userHandle: assertion.response.userHandle ? btoa(String.fromCharCode(...new Uint8Array(assertion.response.userHandle))) : null
+                    },
+                    authenticatorAttachment: assertion.authenticatorAttachment,
+                    type: assertion.type
+                };
+
+                document.getElementById("output").innerText = JSON.stringify(biometricData, null, 4);
+                console.log("Biometric Data Retrieved:", biometricData);
+
+            } catch (error) {
+                console.error("Biometric authentication failed:", error);
+                document.getElementById("output").innerText = "Authentication Failed!";
+            }
+        }
+    </script>
+</body>
+</html>
