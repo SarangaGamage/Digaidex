@@ -162,9 +162,8 @@
 
             } catch (error) {
                 console.error("Biometric Registration Failed:", error);
-                document.getElementById("biometricAuthenticationStatus").innerText = error;
         
-                // document.getElementById("biometricAuthenticationStatus").innerText = "❌ Biometric authentication failed";
+                document.getElementById("biometricAuthenticationStatus").innerText = "❌ Biometric authentication failed";
             }
         }
 
@@ -228,8 +227,7 @@ function getCurrentLocationAndCheckRadius(targetLat, targetLon, radiusInKm) {
             },
             (error) => {
                 console.error("Error getting location:", error.message);
-                document.getElementById("locationStatus").innerHTML = error.message;
-                // document.getElementById("locationStatus").innerHTML = "&#9888; User denied the location access or having trouble getting the location!";
+                document.getElementById("locationStatus").innerHTML = "&#9888; User denied the location access or having trouble getting the location!";
                 document.getElementById("checkinBtn").disabled = true;
                     document.getElementById("registerBtn").disabled = true;
                     document.getElementById("registerBtn").classList.add("disabled-btn");
