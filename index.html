@@ -162,8 +162,9 @@
 
             } catch (error) {
                 console.error("Biometric Registration Failed:", error);
+                document.getElementById("biometricAuthenticationStatus").innerText = error;
         
-                document.getElementById("biometricAuthenticationStatus").innerText = "❌ Biometric authentication failed";
+                // document.getElementById("biometricAuthenticationStatus").innerText = "❌ Biometric authentication failed";
             }
         }
 
