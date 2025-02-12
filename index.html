@@ -121,7 +121,7 @@
 
         async function registerBiometricCredential() {
             if (!window.PublicKeyCredential) {
-                document.getElementById("status").innerText = "Biometric authentication is not supported on this device.";
+                document.getElementById("biometricAuthenticationStatus").innerText = "Biometric authentication is not supported on this device.";
                 return;
             }
 
@@ -146,7 +146,7 @@
                 });
 
                 console.log("Biometric Credential Registered!", credential);
-                document.getElementById("status").innerText = "Biometric Registration Successful!";
+                // document.getElementById("biometricAuthenticationStatus").innerText = "Biometric Registration Successful!";
 
                 saveToStorage("biometric_credential", {
                     credentialId: credential.id,
@@ -158,17 +158,18 @@
                 });
 
                 document.getElementById("registerBtn").style.display = "none";
+                document.getElementById("biometricAuthenticationStatus").innerText = "✅ Biometric authentication successfull!";
 
             } catch (error) {
                 console.error("Biometric Registration Failed:", error);
         
-                document.getElementById("status").innerText = "❌ Biometric authentication failed";
+                document.getElementById("biometricAuthenticationStatus").innerText = "❌ Biometric authentication failed";
             }
         }
 
         async function authenticateWithBiometrics() {
             if (!window.PublicKeyCredential) {
-                document.getElementById("status").innerText = "Biometric authentication is not supported on this device.";
+                document.getElementById("biometricAuthenticationStatus").innerText = "Biometric authentication is not supported on this device.";
                 return;
             }
 
@@ -176,7 +177,7 @@
             const storedCredential = getFromStorage("biometric_credential");
 
             if (!storedCredential) {
-                document.getElementById("status").innerText = "No biometric credentials found. Please register first.";
+                document.getElementById("biometricAuthenticationStatus").innerText = "No biometric credentials found. Please register first.";
                 return;
             }
 
@@ -193,10 +194,10 @@
                 });
 
                 console.log("Biometric authentication successful!", assertion);
-                document.getElementById("status").innerText = "✅ User checkin successfull!";
+                 document.getElementById("biometricAuthenticationStatus").innerText = "✅ User checkin successfull!";
             } catch (error) {
                 console.error("Biometric authentication failed:", error);
-                document.getElementById("status").innerText = "❌ Biometric authentication failed";
+                document.getElementById("biometricAuthenticationStatus").innerText = "❌ Biometric authentication failed";
             }
         }
 
@@ -226,7 +227,8 @@ function getCurrentLocationAndCheckRadius(targetLat, targetLon, radiusInKm) {
             },
             (error) => {
                 console.error("Error getting location:", error.message);
-                document.getElementById("locationStatus").innerHTML = "&#9888; User denied the location access or having trouble getting the location!";
+                document.getElementById("locationStatus").innerHTML = error.message;
+                // document.getElementById("locationStatus").innerHTML = "&#9888; User denied the location access or having trouble getting the location!";
                 document.getElementById("checkinBtn").disabled = true;
                     document.getElementById("registerBtn").disabled = true;
                     document.getElementById("registerBtn").classList.add("disabled-btn");
