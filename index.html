@@ -226,6 +226,11 @@ function getCurrentLocationAndCheckRadius(targetLat, targetLon, radiusInKm) {
             },
             (error) => {
                 console.error("Error getting location:", error.message);
+                document.getElementById("locationStatus").innerHTML = "&#9888; User denied the location access or having trouble getting the location!";
+                document.getElementById("checkinBtn").disabled = true;
+                    document.getElementById("registerBtn").disabled = true;
+                    document.getElementById("registerBtn").classList.add("disabled-btn");
+                    document.getElementById("checkinBtn").classList.add("disabled-btn");
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
