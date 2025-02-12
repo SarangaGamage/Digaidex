@@ -56,26 +56,14 @@
             color: white;
         }
 
-        #newSalesPersonBtn:hover {
-            background-color: #218838;
-        }
-
         #checkinBtn {
             background-color: #007bff;
             color: white;
         }
 
-        #checkinBtn:hover {
-            background-color: #0056b3;
-        }
-
         #registerUserBtn {
             background-color: #ff9800;
             color: white;
-        }
-
-        #registerUserBtn:hover {
-            background-color: #e68900;
         }
 
         .disabled-btn {
@@ -104,11 +92,9 @@
         <p id="locationStatus">📍 Checking location...</p>
         <p id="biometricAuthenticationStatus"></p>
 
-        <!-- Buttons (Initially Visible) -->
         <button id="newSalesPersonBtn" onclick="showRegistrationForm()">📝 I'm a new sales person</button>
         <button id="checkinBtn" onclick="validateLocationAndCheckIn()">✅ Check In</button>
 
-        <!-- Registration Form (Initially Hidden) -->
         <div id="registrationForm" class="hidden">
             <label style="float: left;"> Name: </label>
             <input type="text" id="name" class="input-field" placeholder="Enter your name">
@@ -119,15 +105,33 @@
             <button id="registerUserBtn" onclick="registerUser()">📌 Register User</button>
         </div>
 
-        <!-- Displayed After Check-in -->
         <p id="loggedInUser" class="status-message hidden"></p>
     </div>
 
     <script>
         let userLat, userLon;
-        const allowedRadiusKm = 0.05; // 50 meters
-        const targetLatitude = 6.972775262641707; // Example target latitude (update this)
-        const targetLongitude = 79.90303564604743; // Example target longitude (update this)
+        const allowedRadiusKm = 0.05; 
+        var targetLatitude = '';
+        var targetLongitude = '';
+
+        function getURLParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            targetLatitude = urlParams.get('lat');
+            targetLongitude = urlParams.get('long');
+            if(targetLatitude === null || targetLongitude === null){
+                alert("missing latitudes & Longitudes!");
+                disableButtons();
+                return;
+            }
+            getCurrentLocation((isWithinRange) => {
+            if(isWithinRange){
+                document.getElementById("locationStatus").innerHTML = "📍 Emojot (PVT) Ltd, No 42, 4th floor, Sir Mohammed, Sir Mohomad Macan Markar Mawatha, Colombo 03 00300";
+
+            } else {
+                document.getElementById("locationStatus").innerText = "❌ User is outside the allowed radius.";
+                disableButtons();
+            }});
+        }
 
         function showRegistrationForm() {
             document.getElementById("newSalesPersonBtn").classList.add("hidden");
@@ -145,13 +149,12 @@
             }
 
             localStorage.setItem("sales_person", JSON.stringify({ name, mobile }));
-
             registerBiometricCredential();
         }
 
         async function registerBiometricCredential() {
             if (!window.PublicKeyCredential) {
-                document.getElementById("biometricAuthenticationStatus").innerText = "❌ Biometric authentication is not supported on this device.";
+                document.getElementById("biometricAuthenticationStatus").innerText = "❌ Biometric authentication is not supported.";
                 return;
             }
 
@@ -163,11 +166,7 @@
                     publicKey: {
                         challenge: challenge,
                         rp: { name: "My Secure App" },
-                        user: {
-                            id: userId,
-                            name: "user@example.com",
-                            displayName: "User Example"
-                        },
+                        user: { id: userId, name: "user@example.com", displayName: "User Example" },
                         pubKeyCredParams: [{ type: "public-key", alg: -7 }],
                         authenticatorSelection: { userVerification: "required" },
                         timeout: 60000,
@@ -187,7 +186,6 @@
                 document.getElementById("biometricAuthenticationStatus").innerText = "✅ Registration Successful!";
                 resetToHomePage();
             } catch (error) {
-                console.error("Biometric Registration Failed:", error);
                 document.getElementById("biometricAuthenticationStatus").innerText = "❌ Biometric authentication failed";
             }
         }
@@ -198,41 +196,67 @@
             document.getElementById("checkinBtn").classList.remove("hidden");
         }
 
-        function disableButtons() {
-            document.getElementById("newSalesPersonBtn").disabled = true;
-            document.getElementById("newSalesPersonBtn").classList.add("disabled-btn");
-            document.getElementById("checkinBtn").disabled = true;
-            document.getElementById("checkinBtn").classList.add("disabled-btn");
+        function validateLocationAndCheckIn() {
+            getCurrentLocation((isWithinRange) => {
+                if (isWithinRange) {
+                    authenticateWithBiometrics();
+                } else {
+                    document.getElementById("locationStatus").innerText = "❌ User is outside the allowed radius.";
+                }
+            });
         }
 
-        function getCurrentLocationAndCheckAccess() {
+        async function authenticateWithBiometrics() {
+            const storedCredential = JSON.parse(localStorage.getItem("biometric_credential"));
+            const user = JSON.parse(localStorage.getItem("sales_person"));
+
+            if (!storedCredential || !user) {
+                document.getElementById("biometricAuthenticationStatus").innerText = "❌ No registered user. Please register first.";
+                return;
+            }
+
+            try {
+                const assertion = await navigator.credentials.get({
+                    publicKey: {
+                        challenge: new Uint8Array(32),
+                        allowCredentials: [{ id: new Uint8Array(storedCredential.rawId), type: "public-key" }],
+                        userVerification: "required"
+                    }
+                });
+
+                document.getElementById("biometricAuthenticationStatus").innerText = "✅ User check-in successful!";
+                document.getElementById("loggedInUser").innerText = `👤 Logged in as: ${user.name}`;
+                document.getElementById("loggedInUser").classList.remove("hidden");
+
+            } catch (error) {
+                document.getElementById("biometricAuthenticationStatus").innerText = "❌ Authentication failed";
+            }
+        }
+
+        function getCurrentLocation(callback) {
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         userLat = position.coords.latitude;
                         userLon = position.coords.longitude;
-
-                        console.log(`User Location: Latitude ${userLat}, Longitude ${userLon}`);
-
                         const distance = calculateDistance(userLat, userLon, targetLatitude, targetLongitude);
-                        console.log(`Distance from target: ${distance.toFixed(2)} km`);
-
-                        if (distance > allowedRadiusKm) {
-                            document.getElementById("locationStatus").innerText = "❌ User is outside the allowed radius. Access Denied!";
-                            disableButtons();
-                            return;
-                        }
-
-                        document.getElementById("locationStatus").innerText = "✅ User is within the allowed radius!";
+                        callback(distance <= allowedRadiusKm);
                     },
-                    (error) => {
-                        console.error("Error getting location:", error.message);
-                        document.getElementById("locationStatus").innerText = "⚠️ Location error! User denied the location access or having trouble getting the location!";
+                    () => {
+                        document.getElementById("locationStatus").innerText = "⚠️ Location error!";
                         disableButtons();
+                        callback(false);
                     },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             }
+        }
+
+        function disableButtons() {
+            document.getElementById("newSalesPersonBtn").disabled = true;
+            document.getElementById("newSalesPersonBtn").classList.add("disabled-btn");
+            document.getElementById("checkinBtn").disabled = true;
+            document.getElementById("checkinBtn").classList.add("disabled-btn");
         }
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -242,9 +266,7 @@
             return R * 2 * Math.asin(Math.sqrt(Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) ** 2));
         }
 
-        
-
-        window.onload = getCurrentLocationAndCheckAccess;
+        window.onload = getURLParameters;
     </script>
 </body>
 </html>
