@@ -206,32 +206,48 @@
             });
         }
 
-        async function authenticateWithBiometrics() {
-            const storedCredential = JSON.parse(localStorage.getItem("biometric_credential"));
-            const user = JSON.parse(localStorage.getItem("sales_person"));
+async function authenticateWithBiometrics() {
+    const storedCredential = JSON.parse(localStorage.getItem("biometric_credential"));
+    const user = JSON.parse(localStorage.getItem("sales_person"));
 
-            if (!storedCredential || !user) {
-                document.getElementById("biometricAuthenticationStatus").innerText = "❌ No registered user. Please register first.";
+    if (!storedCredential || !user) {
+        document.getElementById("biometricAuthenticationStatus").innerText = "❌ No registered user. Please register first.";
+        return;
+    }
+
+    try {
+        const assertion = await navigator.credentials.get({
+            publicKey: {
+                challenge: new Uint8Array(32),
+                allowCredentials: [{
+                    id: new Uint8Array(storedCredential.rawId),
+                    type: "public-key"
+                }],
+                userVerification: "required"
+            }
+        });
+
+        // ✅ Extract authenticator data and verify User Verification (UV) flag
+        if (assertion && assertion.response) {
+            const authData = new Uint8Array(assertion.response.authenticatorData);
+            const flags = authData[32]; // Extract the flags byte
+            const userVerified = (flags & 0x04) !== 0; // Check if the UV (User Verified) flag is set
+
+            if (!userVerified) {
+                document.getElementById("biometricAuthenticationStatus").innerText = "❌ Only biometric authentication is allowed.";
                 return;
             }
-
-            try {
-                const assertion = await navigator.credentials.get({
-                    publicKey: {
-                        challenge: new Uint8Array(32),
-                        allowCredentials: [{ id: new Uint8Array(storedCredential.rawId), type: "public-key" }],
-                        userVerification: "required"
-                    }
-                });
-
-                document.getElementById("biometricAuthenticationStatus").innerText = "✅ User check-in successful!";
-                document.getElementById("loggedInUser").innerText = `👤 Logged in as: ${user.name}`;
-                document.getElementById("loggedInUser").classList.remove("hidden");
-
-            } catch (error) {
-                document.getElementById("biometricAuthenticationStatus").innerText = "❌ Authentication failed";
-            }
         }
+
+        document.getElementById("biometricAuthenticationStatus").innerText = "✅ User check-in successful!";
+        document.getElementById("loggedInUser").innerText = `👤 Logged in as: ${user.name}`;
+        document.getElementById("loggedInUser").classList.remove("hidden");
+
+    } catch (error) {
+        document.getElementById("biometricAuthenticationStatus").innerText = "❌ Authentication failed";
+    }
+}
+
 
         function getCurrentLocation(callback) {
             if ("geolocation" in navigator) {
